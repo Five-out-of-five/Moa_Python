@@ -1,0 +1,51 @@
+name: Bug Report
+description: 발견한 버그를 기록하기 위한 템플릿입니다.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: input
+    id: bug_summary
+    attributes:
+      label: 버그 요약
+      description: 어떤 문제가 생겼는지 한 줄로 적어주세요.
+      placeholder: 예) 카드 이동 후 새로고침하면 원래 칸으로 돌아감
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 방법
+      description: 버그가 생기기까지의 순서를 적어주세요.
+      placeholder: |
+        1. 아이디어 보드에서 카드를 KEEP → TRY 로 이동
+        2. 새로고침
+        3. 카드가 KEEP 칸에 다시 보임
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과 / 실제 결과
+      placeholder: |
+        - 기대: 카드가 TRY 칸에 남아 있음
+        - 실제: KEEP 칸으로 돌아감
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 에러 로그 · 스크린샷
+      description: 에러 메시지, 응답 코드, 화면 캡처를 붙여주세요.
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: 환경
+      placeholder: 예) Chrome 130 / 로컬 / develop 브랜치
+    validations:
+      required: false
