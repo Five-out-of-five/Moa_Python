@@ -2,9 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# 의존성 먼저 설치해 레이어 캐시를 살린다. 패키지 소스가 있어야 설치되므로 빈 패키지를 먼저 둔다.
-COPY pyproject.toml ./
-RUN mkdir -p app && touch app/__init__.py && pip install --no-cache-dir . && rm -rf app
+# 의존성은 lock 파일 버전 그대로 설치한다. 빌드할 때마다 최신 버전이 깔려 동작이 바뀌는 것을 막는다.
+# 코드보다 먼저 복사해 레이어 캐시를 살린다(코드만 바뀌면 이 단계는 다시 돌지 않는다).
+COPY requirements.lock ./
+RUN pip install --no-cache-dir -r requirements.lock
 
 COPY app ./app
 

@@ -24,12 +24,14 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: requirements-dev.lock
 
+      # lock 파일 버전 그대로 설치하고, 프로젝트 자체는 의존성 없이 붙인다.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -r requirements-dev.lock
+          pip install --no-deps -e .
 
       - name: Ruff
         run: ruff check .
