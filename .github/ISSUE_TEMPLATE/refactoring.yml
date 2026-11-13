@@ -1,0 +1,22 @@
+name: Refactoring
+description: 코드 리팩토링 및 구조 개선을 기록하기 위한 템플릿입니다.
+title: "[Refactoring]: "
+labels: ["refactor"]
+body:
+  - type: input
+    id: refactor_target
+    attributes:
+      label: 리팩토링 대상
+      description: 수정을 진행할 클래스명이나 모듈의 위치를 적어주세요.
+      placeholder: 예) AuthService.java
+    validations:
+      required: true
+
+  - type: textarea
+    id: refactor_reason
+    attributes:
+      label: 변경 목적 및 내용
+      description: 기존 코드의 어떤 문제점을 어떻게 개선할 것인지 적어주세요.
+      placeholder: 메서드가 너무 길어 가독성이 떨어지므로, 책임을 분리하여 여러 메서드로 나눕니다.
+    validations:
+      required: true
