@@ -29,12 +29,14 @@ class Settings(BaseSettings):
 
     # 모델은 별칭(-latest)이 아니라 이름을 고정한다. 별칭은 예고 없이 바뀌어 프롬프트가 무효가 된다.
     # 짧고 자주 부르는 것(톤, 충돌 판정)은 Flash-Lite, 나머지는 Flash.
+    # gemini-3.5-flash 는 AI Studio 모델 목록에서 빠져 3.8 Flash 로 올렸다(2026-11-14 확인).
+    # 3.8 Flash 할인 가격($0.75/$3.75)은 2026-12-31 까지라 그 뒤에 다시 비교한다.
     gemini_model_tone: str = "gemini-3.5-flash-lite"
     gemini_model_conflict: str = "gemini-3.5-flash-lite"
-    gemini_model_summary: str = "gemini-3.5-flash"
-    gemini_model_compromise: str = "gemini-3.5-flash"
-    gemini_model_layout: str = "gemini-3.5-flash"
-    gemini_model_assistant: str = "gemini-3.5-flash"
+    gemini_model_summary: str = "gemini-3.8-flash"
+    gemini_model_compromise: str = "gemini-3.8-flash"
+    gemini_model_layout: str = "gemini-3.8-flash"
+    gemini_model_assistant: str = "gemini-3.8-flash"
     gemini_model_embedding: str = "gemini-embedding-001"
 
     # Spring 의 읽기 타임아웃이 30초라서, 재시도까지 합친 전체 시간을 그보다 짧게 둔다.
