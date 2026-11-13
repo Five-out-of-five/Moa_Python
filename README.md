@@ -7,10 +7,24 @@ DB 는 없다. 임베딩 저장·호출 기록·한도는 Spring 이 맡는다.
 
 ```bash
 python -m venv .venv
-.venv/Scripts/pip install -e ".[dev]"      # macOS/Linux: .venv/bin/pip
-cp .env.example .env                        # GEMINI_API_KEY 입력
+.venv/Scripts/pip install -r requirements-dev.lock   # macOS/Linux: .venv/bin/pip
+.venv/Scripts/pip install --no-deps -e .
+cp .env.example .env                                  # GEMINI_API_KEY 입력
 .venv/Scripts/uvicorn app.main:app --port 8000
 ```
+
+라이브러리 버전은 lock 파일로 고정한다. `requirements.lock` 은 실행용(Docker), `requirements-dev.lock` 은
+개발·테스트용(CI, 로컬)이다. 윈도우·리눅스 모두에서 쓸 수 있게 만들어져 있다.
+
+`pyproject.toml` 의 의존성을 바꾸면 lock 파일을 다시 만들고 함께 커밋한다.
+
+```bash
+.venv/Scripts/pip install uv
+.venv/Scripts/uv pip compile pyproject.toml --universal --python-version 3.12 --no-header -o requirements.lock
+.venv/Scripts/uv pip compile pyproject.toml --extra dev --universal --python-version 3.12 --no-header -o requirements-dev.lock
+```
+
+버전만 올리고 싶으면 위 명령에 `--upgrade` 를 붙인다.
 
 키 없이 Spring 연동만 확인할 때는 `.env` 에 `AI_STUB_MODE=true`. 모든 응답에 `[더미]` 가 붙는다.
 
