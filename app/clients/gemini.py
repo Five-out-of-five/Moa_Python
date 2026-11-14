@@ -172,8 +172,11 @@ class GeminiClient:
                 break
             index = self._pick()
             attempts += 1
+            # 시도 한 번이 마감 전체를 쓰지 않게 끊는다. 무료 등급은 같은 요청도 3초~25초로 들쭉날쭉해서,
+            # 늦은 시도를 기다리기보다 끊고 다시 부르는 편이 빨리 끝난다(TimeoutError 는 재시도 대상).
+            attempt_limit = min(remaining, self._settings.gemini_attempt_timeout_seconds)
             try:
-                async with asyncio.timeout(remaining):
+                async with asyncio.timeout(attempt_limit):
                     return await call(self._clients[index])
             except Exception as exc:
                 last_exc = exc

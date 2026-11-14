@@ -35,15 +35,16 @@ class Settings(BaseSettings):
     gemini_key_cooldown_seconds: int = 300
 
     # 모델은 별칭(-latest)이 아니라 이름을 고정한다. 별칭은 예고 없이 바뀌어 프롬프트가 무효가 된다.
-    # 짧고 자주 부르는 것(톤, 충돌 판정)은 Flash-Lite, 나머지는 Flash.
-    # gemini-3.5-flash 는 AI Studio 모델 목록에서 빠져 3.8 Flash 로 올렸다(2026-11-14 확인).
-    # 3.8 Flash 할인 가격($0.75/$3.75)은 2026-12-31 까지라 그 뒤에 다시 비교한다.
+    # 무료 등급 기준으로 전부 3.5 Flash-Lite 를 쓴다(2026-11-15 AI Studio 비율 제한 확인).
+    #   3.5 Flash-Lite : 분당 15 / 하루 500 (키당)
+    #   3.8 Flash·3.6 Flash·4 Hydrogen : 분당 5 / 하루 20 (키당) → 방 몇 개면 하루 한도가 바닥난다
+    # 결제를 연결하면 요약·절충안·대시보드 추천·어시스턴트를 환경변수로 상위 모델(3.8 Flash, 4 Hydrogen)로 올린다.
     gemini_model_tone: str = "gemini-3.5-flash-lite"
     gemini_model_conflict: str = "gemini-3.5-flash-lite"
-    gemini_model_summary: str = "gemini-3.8-flash"
-    gemini_model_compromise: str = "gemini-3.8-flash"
-    gemini_model_layout: str = "gemini-3.8-flash"
-    gemini_model_assistant: str = "gemini-3.8-flash"
+    gemini_model_summary: str = "gemini-3.5-flash-lite"
+    gemini_model_compromise: str = "gemini-3.5-flash-lite"
+    gemini_model_layout: str = "gemini-3.5-flash-lite"
+    gemini_model_assistant: str = "gemini-3.5-flash-lite"
     gemini_model_embedding: str = "gemini-embedding-001"
 
     # 생각(thinking) 수준: minimal / low / medium / high, 비우면 모델 기본값.
@@ -59,6 +60,9 @@ class Settings(BaseSettings):
 
     # Spring 의 읽기 타임아웃이 30초라서, 재시도까지 합친 전체 시간을 그보다 짧게 둔다.
     gemini_deadline_seconds: float = 25.0
+    # 시도 한 번에 기다리는 최대 시간. 넘으면 끊고 다시 시도한다(마감 안에서).
+    # 실측(2026-11-15 무료 등급): 같은 요청이 2.8초 / 13.2초 / 25초+ 로 갈렸다. 대부분은 10초 안에 끝난다.
+    gemini_attempt_timeout_seconds: float = 12.0
     # 같은 키로 다시 시도하는 횟수(일시 오류일 때). 키 전환은 키 개수만큼 따로 한다.
     gemini_max_retries: int = 2
 

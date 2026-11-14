@@ -52,3 +52,16 @@ def test_random_inputs_always_pass_spring_rules():
             for _ in range(rng.randint(0, 10))
         ]
         assert violations(repair(raw, ALL, 12), 12) == []
+
+
+def test_missing_base_widgets_are_added():
+    fixed = repair([_w("PROGRESS", 0, 0, 4, 4), _w("VOTE", 4, 0, 3, 3)], ALL, 12)
+    kinds = [w.widget_type for w in fixed]
+    assert "TASK_BOARD" in kinds and "IDEA_BOARD" in kinds
+    assert violations(fixed, 12) == []
+
+
+def test_reason_uses_korean_widget_names():
+    from app.domains.layout.service import _korean_reason
+
+    assert _korean_reason("TASK_BOARD 위젯과 MOOD 위젯을 배치") == "업무 보드 위젯과 상태값 위젯을 배치"

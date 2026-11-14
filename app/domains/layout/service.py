@@ -1,6 +1,7 @@
 """대시보드 AI 구성. 방의 목적에 맞는 위젯 배치를 추천한다."""
 
 import logging
+import re
 
 from pydantic import BaseModel
 
@@ -15,19 +16,42 @@ _REASON_LIMIT = 300
 
 _DESCRIPTIONS = {
     "MOOD": "오늘 팀원들의 기분 체크",
-    "PROGRESS": "업무 진행률 요약",
-    "IDEA_BOARD": "아이디어 카드 보드(안건·유지·문제·시도). 회의·회고의 중심",
+    "PROGRESS": "업무 진행률 요약(업무 보드의 업무로 계산)",
+    "IDEA_BOARD": "아이디어 카드 보드(안건·유지·문제·시도). 회의·회고의 중심. 투표·중재·업무 전환의 출발점",
     "TASK_BOARD": "업무 칸반 보드",
-    "VOTE": "진행 중인 투표",
+    "VOTE": "진행 중인 투표. 아이디어 보드의 안건 카드에서 만들므로 아이디어 보드와 함께 둔다",
     "CATCHUP_BRIEFING": "자리를 비운 사이 바뀐 내용 브리핑",
-    "MEDIATION": "서로 부딪히는 의견 중재",
+    "MEDIATION": "아이디어 카드끼리 부딪히는 의견 중재. 카드가 있어야 동작하므로 아이디어 보드와 함께 둔다",
 }
+
+# 이유 문장에 영어 위젯 이름(TASK_BOARD 등)이 그대로 나오면 화면에 그대로 보인다. 화면에 쓰는 이름으로 바꾼다.
+_KOREAN_NAMES = {
+    "MOOD": "상태값",
+    "PROGRESS": "진척도",
+    "IDEA_BOARD": "아이디어 보드",
+    "TASK_BOARD": "업무 보드",
+    "VOTE": "투표",
+    "CATCHUP_BRIEFING": "캐치업 브리핑",
+    "MEDIATION": "중재",
+}
+_TYPE_NAME = re.compile(r"\b(" + "|".join(_KOREAN_NAMES) + r")\b")
 
 _SYSTEM = (
     "너는 팀 협업 대시보드 배치 도우미다. 방의 목적에 꼭 필요한 위젯만 골라 배치한다. "
-    "목적과 관계없는 위젯은 넣지 않는다. 중요한 위젯일수록 왼쪽 위에 크게 둔다. "
-    "reason 은 왜 이렇게 배치했는지 두 문장 이내로 쓴다. " + DATA_RULE
+    "목적과 관계없는 위젯은 넣지 않는다. 중요한 위젯일수록 왼쪽 위에 크게 둔다.\n"
+    "모든 위젯을 원하면 목록의 위젯을 하나도 빠짐없이 넣는다.\n"
+    "회고, 업무, 의사결정, 의견 조율, 팀 분위기·컨디션, 놓친 소식 확인은 모두 협업 목적이다. "
+    "점심 메뉴, 날씨, 잡담처럼 대시보드와 관계없는 내용일 때만 그 내용에 맞추지 말고 "
+    "아이디어 보드와 업무 보드 중심의 기본 구성을 추천하고, "
+    "이유에 '목적이 대시보드 구성과 관련이 없어 기본 구성을 추천했습니다'라고 쓴다. "
+    "'알아서 해줘'처럼 목적이 구체적이지 않으면 '목적이 구체적이지 않아 기본 구성을 추천했습니다'라고 쓴다.\n"
+    "reason 은 왜 이렇게 배치했는지 두 문장 이내로, '~했습니다' 체로 쓴다. "
+    "위젯은 '아이디어 보드', '업무 보드'처럼 한국어 이름으로 부르고 괄호나 영어 이름은 쓰지 않는다. " + DATA_RULE
 )
+
+
+def _korean_reason(reason: str) -> str:
+    return _TYPE_NAME.sub(lambda m: _KOREAN_NAMES[m.group(1)], reason).replace(" 위젯 위젯", " 위젯")
 
 
 class _Item(BaseModel):
@@ -71,7 +95,8 @@ def _rules(request: LayoutRecommendRequest) -> str:
     lines = []
     for kind in request.widget_types:
         min_w, min_h = min_size(kind)
-        lines.append(f"- {kind}: {_DESCRIPTIONS.get(kind, kind)} (최소 {min_w}x{min_h})")
+        name = _KOREAN_NAMES.get(kind, kind)
+        lines.append(f"- {kind}({name}): {_DESCRIPTIONS.get(kind, kind)} (최소 {min_w}x{min_h})")
     return (
         f"격자는 가로 {request.grid_columns}칸이다. 좌표 x·y 는 0부터, x + w <= {request.grid_columns}, "
         f"h <= {MAX_HEIGHT}. 위젯끼리 겹치지 않는다. 같은 위젯은 한 번만 쓴다.\n쓸 수 있는 위젯:\n" + "\n".join(lines)
@@ -82,7 +107,7 @@ async def recommend(gemini: GeminiClient, request: LayoutRecommendRequest) -> La
     types = list(dict.fromkeys(request.widget_types))
     prompt = _rules(request) + "\n\n방의 목적:\n" + data_block(request.purpose)
     out = await gemini.generate_json(
-        GeminiTask.LAYOUT, prompt, _schema(types), _Out.model_validate, system=_SYSTEM, temperature=0.3
+        GeminiTask.LAYOUT, prompt, _schema(types), _Out.model_validate, system=_SYSTEM, temperature=0.1
     )
 
     raw = [WidgetPlacement(**item.model_dump()) for item in out.widgets]
@@ -90,5 +115,5 @@ async def recommend(gemini: GeminiClient, request: LayoutRecommendRequest) -> La
     if raw != widgets:
         # 얼마나 자주 고치는지 보려고 남긴다. 너무 잦으면 프롬프트를 손본다.
         logger.info("레이아웃 보정: %s", violations(raw, request.grid_columns) or "일부 위젯 제외")
-    reason = clip(out.reason, _REASON_LIMIT) or "방의 목적에 맞춰 위젯을 배치했습니다."
+    reason = clip(_korean_reason(out.reason), _REASON_LIMIT) or "방의 목적에 맞춰 위젯을 배치했습니다."
     return LayoutRecommendResponse(widgets=widgets, reason=reason)
