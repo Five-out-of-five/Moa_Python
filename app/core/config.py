@@ -4,9 +4,16 @@
 """
 
 from functools import lru_cache
+from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# .env 에 대문자로 써도 받는다. 빈 값은 '모델 기본값'이다.
+ThinkingLevel = Annotated[
+    Literal["", "minimal", "low", "medium", "high"],
+    BeforeValidator(lambda v: (v or "").strip().lower()),
+]
 
 
 class Settings(BaseSettings):
@@ -38,6 +45,17 @@ class Settings(BaseSettings):
     gemini_model_layout: str = "gemini-3.8-flash"
     gemini_model_assistant: str = "gemini-3.8-flash"
     gemini_model_embedding: str = "gemini-embedding-001"
+
+    # 생각(thinking) 수준: minimal / low / medium / high, 비우면 모델 기본값.
+    # 모델 기본값은 오래 생각해서 느리다(2026-11-15 실측: 3.5 Flash 기본 26초·생각 토큰 731개,
+    # Hydrogen 기본 21초 → low 6초). 25초 마감 안에 들어오도록 low 를 기본으로 둔다.
+    # 3.8 Flash·Hydrogen 은 minimal 을 받지 않는다(400). 결과가 아쉬운 기능만 medium 으로 올린다.
+    gemini_thinking_tone: ThinkingLevel = "low"
+    gemini_thinking_conflict: ThinkingLevel = "low"
+    gemini_thinking_summary: ThinkingLevel = "low"
+    gemini_thinking_compromise: ThinkingLevel = "low"
+    gemini_thinking_layout: ThinkingLevel = "low"
+    gemini_thinking_assistant: ThinkingLevel = "low"
 
     # Spring 의 읽기 타임아웃이 30초라서, 재시도까지 합친 전체 시간을 그보다 짧게 둔다.
     gemini_deadline_seconds: float = 25.0
