@@ -122,6 +122,19 @@ class GeminiClient:
             GeminiTask.EMBEDDING: s.gemini_model_embedding,
         }[task]
 
+    def thinking_for(self, task: GeminiTask) -> types.ThinkingConfig | None:
+        """용도별 생각 수준. 비어 있으면 None(모델 기본값)."""
+        s = self._settings
+        level = {
+            GeminiTask.TONE: s.gemini_thinking_tone,
+            GeminiTask.SUMMARY: s.gemini_thinking_summary,
+            GeminiTask.CONFLICT: s.gemini_thinking_conflict,
+            GeminiTask.COMPROMISE: s.gemini_thinking_compromise,
+            GeminiTask.LAYOUT: s.gemini_thinking_layout,
+            GeminiTask.ASSISTANT: s.gemini_thinking_assistant,
+        }.get(task, "")
+        return types.ThinkingConfig(thinking_level=level.upper()) if level else None
+
     # ------------------------------------------------------------------
     # 키 선택
     # ------------------------------------------------------------------
@@ -244,18 +257,16 @@ class GeminiClient:
         `parse` 가 ValueError(pydantic ValidationError 포함)를 내면 응답 형식 오류로 본다.
         """
         model = self.model_for(task)
+        config = types.GenerateContentConfig(
+            system_instruction=system,
+            response_mime_type="application/json",
+            response_json_schema=schema,
+            temperature=temperature,
+            thinking_config=self.thinking_for(task),
+        )
 
         async def _call(client: Any) -> T:
-            response = await client.aio.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system,
-                    response_mime_type="application/json",
-                    response_json_schema=schema,
-                    temperature=temperature,
-                ),
-            )
+            response = await client.aio.models.generate_content(model=model, contents=prompt, config=config)
             if not response.text:
                 raise AiException(AiErrorCode.LLM_RESPONSE_INVALID)
             try:
@@ -279,7 +290,9 @@ class GeminiClient:
         전이라 일반 에러(502/504)로 돌려줄 수 있다. 첫 조각 이후의 실패는 스트림을 끊는다.
         """
         model = self.model_for(task)
-        config = types.GenerateContentConfig(system_instruction=system, temperature=temperature)
+        config = types.GenerateContentConfig(
+            system_instruction=system, temperature=temperature, thinking_config=self.thinking_for(task)
+        )
 
         async def _open(client: Any) -> tuple[str, AsyncIterator[Any]]:
             stream = await client.aio.models.generate_content_stream(model=model, contents=prompt, config=config)
