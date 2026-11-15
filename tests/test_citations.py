@@ -45,3 +45,14 @@ def test_references_keep_only_known_ids():
     )
     refs = build_references({"card": [1, 99], "task": [2], "vote": [5]}, context)
     assert refs == {"cards": [{"id": 1, "title": "카드"}], "tasks": [{"id": 2, "title": "업무"}], "votes": []}
+
+
+def test_raw_internal_ids_are_removed_and_collected():
+    out, c = _run(["회의 문제(`card_", "id=3`)와 업무 `task_id=8` 를 보면", " 먼저입니다."])
+    assert out == "회의 문제와 업무 를 보면 먼저입니다."
+    assert c.cited == {"card": [3], "task": [8], "vote": []}
+
+
+def test_words_that_look_like_id_prefix_are_kept():
+    out, _ = _run(["basic ca", "t vote 결과"])
+    assert out == "basic cat vote 결과"

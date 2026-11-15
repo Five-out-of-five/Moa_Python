@@ -10,6 +10,7 @@ import logging
 
 import pytest
 
+from app.clients import gemini as gemini_module
 from app.clients.gemini import GeminiClient, GeminiTask
 from app.core.errors import AiErrorCode, AiException
 from tests.conftest import make_settings
@@ -141,3 +142,26 @@ def test_stub_json_matches_schema():
         "type": "object", "properties": {"card_id": {"type": "integer"}}}}}}
     result = asyncio.run(client.generate_json(GeminiTask.CONFLICT, "card_id=4 card_id=9", schema, lambda d: d))
     assert json.dumps(result) == json.dumps({"items": [{"card_id": 4}, {"card_id": 9}]})
+
+
+async def test_slow_attempt_is_cut_and_retried(monkeypatch):
+    """시도 하나가 attempt 제한을 넘기면 끊고 다시 부른다. 마감 전체를 한 시도가 쓰지 않는다."""
+    import asyncio as _asyncio
+
+    from tests.fakes import _Obj
+
+    calls: list = []
+
+    class _Models:
+        async def generate_content(self, **kwargs):
+            calls.append("call")
+            if len(calls) == 1:
+                await _asyncio.Event().wait()  # 응답이 오지 않는 시도
+            return _Obj(text='{"ok": true}')
+
+    monkeypatch.setattr(
+        gemini_module.genai, "Client", lambda api_key: _Obj(aio=_Obj(models=_Models()))
+    )
+    client = _client("k1", gemini_attempt_timeout_seconds=0.05, gemini_deadline_seconds=5)
+    assert await _call(client) == {"ok": True}
+    assert len(calls) == 2

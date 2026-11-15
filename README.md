@@ -47,9 +47,10 @@ docker run --env-file .env -p 8000:8000 moa-ai
 | `APP_ENV` | `local` / `dev` / `prod`. prod 는 스텁 금지, 내부 키 필수, API 문서 닫힘 |
 | `GEMINI_API_KEY` | 쉼표로 여러 개. 429/401/403 이면 다음 키로 넘어가고 걸린 키는 쿨다운 |
 | `GEMINI_KEY_COOLDOWN_SECONDS` | 걸린 키를 쉬게 하는 시간(기본 300) |
-| `GEMINI_MODEL_*` | 용도별 모델. 기본: 톤·충돌은 `gemini-3.5-flash-lite`, 요약·절충안·대시보드 추천·어시스턴트는 `gemini-3.8-flash`, 임베딩은 `gemini-embedding-001`. `-latest` 별칭은 쓰지 않는다(가리키는 모델이 바뀌면 프롬프트가 예고 없이 다르게 동작) |
+| `GEMINI_MODEL_*` | 용도별 모델. 기본은 전부 `gemini-3.5-flash-lite`(무료 등급 하루 500회/키). 3.8 Flash·4 Hydrogen 은 무료 하루 20회/키라 결제 연결 후 요약·절충안·대시보드 추천·어시스턴트에만 올린다. 임베딩은 `gemini-embedding-001`. `-latest` 별칭은 쓰지 않는다 |
 | `GEMINI_THINKING_*` | 용도별 생각 수준(`minimal`/`low`/`medium`/`high`, 비우면 모델 기본값). 기본 `low`. 모델 기본값은 오래 생각해 20초를 넘기기 쉬워 25초 마감에 걸린다. 결과가 아쉬운 기능만 `medium` 으로 올린다 |
 | `GEMINI_DEADLINE_SECONDS` | 재시도·키 전환 포함 전체 제한(기본 25). Spring 읽기 타임아웃 30초보다 짧게 |
+| `GEMINI_ATTEMPT_TIMEOUT_SECONDS` | 시도 한 번에 기다리는 최대 시간(기본 12). 넘으면 끊고 마감 안에서 다시 시도한다. 무료 등급은 같은 요청도 3초~25초로 들쭉날쭉하다 |
 | `INTERNAL_API_KEY` | Spring 이 `X-Internal-Api-Key` 로 보내는 값. 비우면 검사 안 함(로컬) |
 | `AI_STUB_MODE` | 더미 응답 |
 

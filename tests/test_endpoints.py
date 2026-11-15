@@ -145,3 +145,20 @@ async def test_assistant_failure_mid_stream_breaks_connection():
             seen.append(event)
     # 근거를 보내지 않고 끊는다. Spring 은 이걸 PARTIAL 로 저장한다.
     assert seen == ['data: {"delta": "앞부분"}\n\n']
+
+
+def test_summary_heading_lines_are_cleaned():
+    from app.domains.summary.service import _clean_headings
+
+    raw = "\n".join(
+        [
+            "## 주요 의견: 팀이 낸 의견의 핵심.",
+            "- 회의가 길다",
+            "## 합의된 내용 :",
+            "- 없음",
+            "### 실행 과제 후보 - 설명",
+            "- 타이머",
+        ]
+    )
+    expected = "\n".join(["## 주요 의견", "- 회의가 길다", "## 합의된 내용", "- 없음", "## 실행 과제 후보", "- 타이머"])
+    assert _clean_headings(raw) == expected

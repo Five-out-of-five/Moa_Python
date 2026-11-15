@@ -71,9 +71,28 @@ def repair(raw: list[WidgetPlacement], allowed: list[str], columns: int) -> list
         seen.add(kind)
 
     if placed:
-        return placed
+        return _add_missing_bases(placed, allowed_set, columns)
     fallback = [p for p in DEFAULT_LAYOUT if p.widget_type in allowed_set and p.x + p.w <= columns]
     return fallback
+
+
+# 다른 위젯이 있어야 쓸모 있는 위젯 → 그 기반 위젯.
+#   진척도는 업무 보드의 업무로 계산하고, 투표는 안건 카드에서 만들며, 중재는 카드끼리의 충돌을 다룬다.
+# 작은 모델이 진척도를 채우기용으로 자주 넣는다(2026-11-15 Flash-Lite 실측). 기반이 빠지면 빈자리에 넣는다.
+_BASE_OF = {"PROGRESS": "TASK_BOARD", "VOTE": "IDEA_BOARD", "MEDIATION": "IDEA_BOARD"}
+
+
+def _add_missing_bases(placed: list[WidgetPlacement], allowed: set[str], columns: int) -> list[WidgetPlacement]:
+    kinds = {p.widget_type for p in placed}
+    for dependent, base in _BASE_OF.items():
+        if dependent in kinds and base not in kinds and base in allowed:
+            w, h = min_size(base)
+            if w > columns:
+                continue
+            x, y = _first_fit(w, h, placed, columns)
+            placed.append(WidgetPlacement(widget_type=base, x=x, y=y, w=w, h=h))
+            kinds.add(base)
+    return placed
 
 
 def violations(widgets: list[WidgetPlacement], columns: int) -> list[str]:
